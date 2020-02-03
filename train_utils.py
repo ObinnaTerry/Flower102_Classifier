@@ -54,3 +54,10 @@ class TrainUtils:
         test_loader = torch.utils.data.DataLoader(test_data, batch_size=64)
 
         return train_loader, valid_loader, test_loader
+
+    @staticmethod
+    def names():
+        with open('cat_to_name.json', 'r') as file:
+            cat_to_name = json.load(file)
+
+        return cat_to_name
