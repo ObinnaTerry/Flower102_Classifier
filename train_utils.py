@@ -61,3 +61,45 @@ class TrainUtils:
             cat_to_name = json.load(file)
 
         return cat_to_name
+
+    def create_model(model='vgg16', hidden_layer=256, learning_rate=0.001, mode='gpu'):
+
+        models = ['vgg16', 'densenet121', 'alexnet']
+
+        if model_name == 'vgg16':
+
+        model = models.vgg16(pretrained=True)
+
+        elif model_name == 'densenet121':
+
+        model = models.densenet121(pretrained=True)
+
+        elif model_name == 'alexnet':
+
+        model = models.alexnet(pretrained=True)
+
+        else:
+
+        print(f'Please choose one of these models: {models}')
+
+    classifier_input = model.classifier[0].in_features
+    classifier_output = len(self.names)
+
+    device = torch.device("cuda" if torch.cuda.is_available() and mode == 'gpu' else "cpu")
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    model.classifier = nn.Sequential(nn.Linear(classifier_input, hidden_layer),
+                                     nn.ReLU(),
+                                     nn.Dropout(0.2),
+                                     nn.Linear(hidden_layer, classifier_output),
+                                     nn.LogSoftmax(dim=1))
+
+    criterion = nn.NLLLoss()
+
+    optimizer = optim.Adam(model.classifier.parameters(), learning_rate=0.001)
+
+    model.to(device)
+
+    return model, optimizer, criterion
