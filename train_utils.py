@@ -12,8 +12,10 @@ from torchvision import transforms, models, datasets
 class TrainUtils:
     """Contains methods for training"""
 
-    def __init__(self, base_folder='./flower/'):
+    def __init__(self, base_folder='./flower/', mode='gpu'):
         self.base_folder = base_folder
+        self.mode = mode
+        self.device = torch.device("cuda" if torch.cuda.is_available() and self.mode == 'gpu' else "cpu")
 
     def data_loader(self):
         train_dir = self.base_folder + '/train'
@@ -62,44 +64,83 @@ class TrainUtils:
 
         return cat_to_name
 
-    def create_model(model='vgg16', hidden_layer=256, learning_rate=0.001, mode='gpu'):
+    def create_model(self, model='vgg16', hidden_layer=256, learning_rate=0.001):
 
         models = ['vgg16', 'densenet121', 'alexnet']
 
         if model_name == 'vgg16':
-
-        model = models.vgg16(pretrained=True)
-
+            model = models.vgg16(pretrained=True)
         elif model_name == 'densenet121':
-
-        model = models.densenet121(pretrained=True)
-
+            model = models.densenet121(pretrained=True)
         elif model_name == 'alexnet':
-
-        model = models.alexnet(pretrained=True)
-
+            model = models.alexnet(pretrained=True)
         else:
+            print(f'Please choose one of these models: {models}')
 
-        print(f'Please choose one of these models: {models}')
+        classifier_input = model.classifier[0].in_features
+        classifier_output = len(self.names)
 
-    classifier_input = model.classifier[0].in_features
-    classifier_output = len(self.names)
+        for param in model.parameters():
+            param.requires_grad = False
 
-    device = torch.device("cuda" if torch.cuda.is_available() and mode == 'gpu' else "cpu")
+        model.classifier = nn.Sequential(nn.Linear(classifier_input, hidden_layer),
+                                         nn.ReLU(),
+                                         nn.Dropout(0.2),
+                                         nn.Linear(hidden_layer, classifier_output),
+                                         nn.LogSoftmax(dim=1))
 
-    for param in model.parameters():
-        param.requires_grad = False
+        criterion = nn.NLLLoss()
 
-    model.classifier = nn.Sequential(nn.Linear(classifier_input, hidden_layer),
-                                     nn.ReLU(),
-                                     nn.Dropout(0.2),
-                                     nn.Linear(hidden_layer, classifier_output),
-                                     nn.LogSoftmax(dim=1))
+        optimizer = optim.Adam(model.classifier.parameters(), learning_rate=0.001)
 
-    criterion = nn.NLLLoss()
+        model.to(self.device)
 
-    optimizer = optim.Adam(model.classifier.parameters(), learning_rate=0.001)
+        return model, optimizer, criterion
 
-    model.to(device)
+    def train_validate(self, optimizer, model, criterion, train_loader, valid_loader, epochs=3):
 
-    return model, optimizer, criterion
+        steps = 0
+        running_loss = 0
+        print_every = 5
+        for epoch in range(epochs):
+            for inputs, labels in train_loader:
+                steps += 1
+                # Move input and label tensors to the default device
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+                optimizer.zero_grad()
+
+                logps = model.forward(inputs)
+                loss = criterion(logps, labels)
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+
+                if steps % print_every == 0:
+                    valid_loss = 0
+                    accuracy = 0
+                    model.eval()
+                    with torch.no_grad():
+                        for inputs, labels in valid_loader:
+                            inputs, labels = inputs.to(self.device), labels.to(self.device)
+                            logps = model.forward(inputs)
+                            batch_loss = criterion(logps, labels)
+
+                            valid_loss += batch_loss.item()
+
+                            # Calculate accuracy
+                            ps = torch.exp(logps)
+                            top_p, top_class = ps.topk(1, dim=1)
+                            equals = top_class == labels.view(*top_class.shape)
+                            accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+                            training_loss = round(running_loss / print_every, 3)
+
+                    print(f"Epoch {epoch + 1}/{epochs}.. "
+                          f"Train loss: {running_loss / print_every:.3f}.. "
+                          f"Valid loss: {valid_loss / len(valid_loader):.3f}.. "
+                          f"Valid accuracy: {accuracy / len(valid_loader):.3f}")
+                    running_loss = 0
+                    model.train()
+
+        print('Training Completed!!!')
