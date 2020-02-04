@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import os
 
 import torch
 from torch import nn
@@ -13,6 +14,9 @@ class TrainUtils:
     """Contains methods for training"""
 
     def __init__(self, base_folder='./flower/', mode='gpu'):
+
+        if not os.path.exists(base_folder):
+            raise 'Target folder can not be found'
         self.base_folder = base_folder
         self.mode = mode
         self.device = torch.device("cuda" if torch.cuda.is_available() and self.mode == 'gpu' else "cpu")
@@ -156,9 +160,15 @@ class TrainUtils:
 
         print('Training Completed!!!')
 
-        def save_model(self, model, train_loader, optimizer, file_path='./'):
+        @staticmethod
+        def save_model(model, train_loader, optimizer, file_path='./'):
 
-            checkpoint = {'class_to_idx': train_data.class_to_idx,
+            model.class_to_idx = train_data.class_to_idx
+
+            print("Our model: \n\n", model, '\n')
+            print("The state dict keys: \n\n", model.state_dict().keys())
+
+            checkpoint = {'class_to_idx': model.class_to_idx,
                           'model':model,
                           'classifier': model.classifier,
                           'optimizer': optimizer.state_dict(),
@@ -166,5 +176,5 @@ class TrainUtils:
 
             torch.save(checkpoint, f'{file_path}/checkpoint.pth')
 
-            print('Model successfully saved')
+            print(f'Model successfully saved at {file_path}')
 
