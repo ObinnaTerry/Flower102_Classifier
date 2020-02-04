@@ -161,7 +161,7 @@ class TrainUtils:
         print('Training Completed!!!')
 
         @staticmethod
-        def save_model(model, train_loader, optimizer, file_path='./'):
+        def save_model(model, train_loader, optimizer, file_path='./', model_name='checkpoint'):
 
             model.class_to_idx = train_data.class_to_idx
 
@@ -174,7 +174,7 @@ class TrainUtils:
                           'optimizer': optimizer.state_dict(),
                           'state_dict': model.state_dict()}
 
-            torch.save(checkpoint, f'{file_path}/checkpoint.pth')
+            torch.save(checkpoint, f'{file_path}//{model_name}.pth')
 
             print(f'Model successfully saved at {file_path}')
 
