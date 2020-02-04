@@ -1,30 +1,31 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import json
 import os
 
 import torch
 from torch import nn
 from torch import optim
-import torch.nn.functional as FP
 from torchvision import transforms, models, datasets
 
 
-class TrainUtils:
+class TrainUtils(Exception):
     """Contains methods for training"""
 
-    def __init__(self, base_folder='./flower/', mode='gpu'):
+    def __init__(self, mode='gpu'):
 
-        if not os.path.exists(base_folder):
-            raise 'Target folder can not be found'
-        self.base_folder = base_folder
+        Exception.__init__(self)
+
         self.mode = mode
         self.device = torch.device("cuda" if torch.cuda.is_available() and self.mode == 'gpu' else "cpu")
 
-    def data_loader(self):
-        train_dir = self.base_folder + '/train'
-        valid_dir = self.base_folder + '/valid'
-        test_dir = self.base_folder + '/test'
+    @staticmethod
+    def data_loader(base_folder='./flowers/'):
+
+        if not os.path.exists(base_folder):
+            raise Exception('Target folder can not be found')
+
+        train_dir = base_folder + '/train'
+        valid_dir = base_folder + '/valid'
+        test_dir = base_folder + '/test'
 
         # TODO: Define your transforms for the training, validation, and testing sets
 
@@ -59,7 +60,7 @@ class TrainUtils:
 
         test_loader = torch.utils.data.DataLoader(test_data, batch_size=64)
 
-        return train_loader, valid_loader, test_loader
+        return train_loader, valid_loader, test_loader, train_data.class_to_idx
 
     @staticmethod
     def names():
@@ -68,9 +69,9 @@ class TrainUtils:
 
         return cat_to_name
 
-    def create_model(self, model_name='vgg16', hidden_layer=256, lr=0.001):
+    def create_model(self, model_name='vgg16', hidden_layer=256, learning_rate=0.001):
 
-        models = ['vgg16', 'densenet121', 'alexnet']
+        models_list = ['vgg16', 'densenet121', 'alexnet']
 
         if model_name == 'vgg16':
             model = models.vgg16(pretrained=True)
@@ -79,7 +80,7 @@ class TrainUtils:
         elif model_name == 'alexnet':
             model = models.alexnet(pretrained=True)
         else:
-            print(f'Please choose one of these models: {models}')
+            print(f'Please choose one of these models: {models_list}')
 
         classifier_input = model.classifier[0].in_features
         classifier_output = len(self.names)
@@ -95,7 +96,7 @@ class TrainUtils:
 
         criterion = nn.NLLLoss()
 
-        optimizer = optim.Adam(model.classifier.parameters(), learning_rate=lr)
+        optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
 
         model.to(self.device)
 
@@ -107,7 +108,7 @@ class TrainUtils:
         accuracy = 0
                     
         with torch.no_grad():
-            for inputs, labels in valid_loader:
+            for inputs, labels in test_loader:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 logps = model.forward(inputs)
                 batch_loss = criterion(logps, labels)
@@ -145,11 +146,8 @@ class TrainUtils:
                 if steps % print_every == 0:
 
                     model.eval()
-
-                    valid_loss = 0
-                    accuracy = 0
                     
-                    accuracy, test_loss = self.validation(model, criterion, test_loader)
+                    accuracy, test_loss = self.validation(model, criterion, valid_loader)
 
                     print(f"Epoch {epoch + 1}/{epochs}.. "
                           f"Train loss: {running_loss / print_every:.3f}.. "
@@ -161,9 +159,9 @@ class TrainUtils:
         print('Training Completed!!!')
 
         @staticmethod
-        def save_model(model, train_loader, optimizer, file_path='./', model_name='checkpoint'):
+        def save_model(model, class_to_idx, optimizer, file_path='./', model_name='checkpoint'):
 
-            model.class_to_idx = train_data.class_to_idx
+            model.class_to_idx = class_to_idx
 
             print("Our model: \n\n", model, '\n')
             print("The state dict keys: \n\n", model.state_dict().keys())
