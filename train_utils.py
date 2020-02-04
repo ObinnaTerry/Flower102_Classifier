@@ -64,7 +64,7 @@ class TrainUtils:
 
         return cat_to_name
 
-    def create_model(self, model='vgg16', hidden_layer=256, learning_rate=0.001):
+    def create_model(self, model_name='vgg16', hidden_layer=256, lr=0.001):
 
         models = ['vgg16', 'densenet121', 'alexnet']
 
@@ -91,7 +91,7 @@ class TrainUtils:
 
         criterion = nn.NLLLoss()
 
-        optimizer = optim.Adam(model.classifier.parameters(), learning_rate=0.001)
+        optimizer = optim.Adam(model.classifier.parameters(), learning_rate=lr)
 
         model.to(self.device)
 
@@ -134,7 +134,6 @@ class TrainUtils:
                             top_p, top_class = ps.topk(1, dim=1)
                             equals = top_class == labels.view(*top_class.shape)
                             accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-                            training_loss = round(running_loss / print_every, 3)
 
                     print(f"Epoch {epoch + 1}/{epochs}.. "
                           f"Train loss: {running_loss / print_every:.3f}.. "
@@ -144,3 +143,4 @@ class TrainUtils:
                     model.train()
 
         print('Training Completed!!!')
+
