@@ -21,11 +21,11 @@ if __name__ == '__main__':
 
 	util = TrainUtils(args.mode)
 
-	train_loader, valid_loader, test_loader = util.data_loader()
+	train_loader, valid_loader, test_loader = util.data_loader()  #load data
 
-	model, optimizer, criterion = util.create_model(args.model_name, args.hidden_layer, args.lr)
+	model, optimizer, criterion = util.create_model(args.model_name, args.hidden_layer, args.lr)  # create model
 
-	utils.train_validate(self, optimizer, model, criterion, train_loader, valid_loader, args.epochs)
+	utils.train_validate(self, optimizer, model, criterion, train_loader, valid_loader, args.epochs)  # train and validate model
 
-	utils.save_model(model, train_loader, optimizer, args.model_save_path, args.model_save_name)
+	utils.save_model(model, train_loader, optimizer, args.model_save_path, args.model_save_name)  #save model
 
