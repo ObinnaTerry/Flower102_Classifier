@@ -1,5 +1,4 @@
 import argparse
-import os
 from train_utils import TrainUtils
 
 
@@ -9,8 +8,8 @@ my_parser.add_argument('--model_name', action='store', dest='model_name', type=s
 my_parser.add_argument('--base_folder', action='store', dest='base_folder', type=str, default='./flower/')
 my_parser.add_argument('--mode', action='store', dest='mode', type=str, default='gpu')
 my_parser.add_argument('--hidden_layer', action='store', dest='hidden_layer', type=int, default=256)
-my_parser.add_argument('--lr', action='store', dest='lr', type=float, default=0.001)
-my_parser.add_argument('--epochs', action=store, dest='epochs', type=int, default=3)
+my_parser.add_argument('--learning_rate', action='store', dest='learning_rate', type=float, default=0.001)
+my_parser.add_argument('--epochs', action='store', dest='epochs', type=int, default=3)
 my_parser.add_argument('--model_save_path', action='store', dest='model_save_path', default='./')
 my_parser.add_argument('--model_save_name', action='store', dest='model_save_name', default='checkpoint')
 
@@ -21,11 +20,11 @@ if __name__ == '__main__':
 
 	util = TrainUtils(args.mode)
 
-	train_loader, valid_loader, test_loader = util.data_loader()  #load data
+	train_loader, valid_loader, test_loader, class_to_idx = util.data_loader()  #load data
 
-	model, optimizer, criterion = util.create_model(args.model_name, args.hidden_layer, args.lr)  # create model
+	model, optimizer, criterion = util.create_model(args.model_name, args.hidden_layer, args.learning_rate)  # create model
 
-	utils.train_validate(self, optimizer, model, criterion, train_loader, valid_loader, args.epochs)  # train and validate model
+	util.train_validate(optimizer, model, criterion, train_loader, valid_loader, args.epochs)  # train and validate model
 
-	utils.save_model(model, train_loader, optimizer, args.model_save_path, args.model_save_name)  #save model
+	util.save_model(model, class_to_idx, optimizer, args.model_save_path, args.model_save_name)  #save model
 
