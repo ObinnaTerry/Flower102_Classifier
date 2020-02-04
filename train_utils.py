@@ -97,11 +97,32 @@ class TrainUtils:
 
         return model, optimizer, criterion
 
+    def validation(self, model, criterion, test_loader):
+
+        valid_loss = 0
+        accuracy = 0
+                    
+        with torch.no_grad():
+            for inputs, labels in valid_loader:
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                logps = model.forward(inputs)
+                batch_loss = criterion(logps, labels)
+
+                valid_loss += batch_loss.item()
+
+                # Calculate accuracy
+                ps = torch.exp(logps)
+                top_p, top_class = ps.topk(1, dim=1)
+                equals = top_class == labels.view(*top_class.shape)
+                accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+
+        return round(accuracy/len(test_loader), 3), round(valid_loss/len(test_loader), 3)
+
     def train_validate(self, optimizer, model, criterion, train_loader, valid_loader, epochs=3):
 
         steps = 0
         running_loss = 0
-        print_every = 5
+        print_every = 20
         for epoch in range(epochs):
             for inputs, labels in train_loader:
                 steps += 1
@@ -118,29 +139,32 @@ class TrainUtils:
                 running_loss += loss.item()
 
                 if steps % print_every == 0:
+
+                    model.eval()
+
                     valid_loss = 0
                     accuracy = 0
-                    model.eval()
-                    with torch.no_grad():
-                        for inputs, labels in valid_loader:
-                            inputs, labels = inputs.to(self.device), labels.to(self.device)
-                            logps = model.forward(inputs)
-                            batch_loss = criterion(logps, labels)
-
-                            valid_loss += batch_loss.item()
-
-                            # Calculate accuracy
-                            ps = torch.exp(logps)
-                            top_p, top_class = ps.topk(1, dim=1)
-                            equals = top_class == labels.view(*top_class.shape)
-                            accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+                    
+                    accuracy, test_loss = self.validation(model, criterion, test_loader)
 
                     print(f"Epoch {epoch + 1}/{epochs}.. "
                           f"Train loss: {running_loss / print_every:.3f}.. "
-                          f"Valid loss: {valid_loss / len(valid_loader):.3f}.. "
-                          f"Valid accuracy: {accuracy / len(valid_loader):.3f}")
+                          f"Test loss: {test_loss}.. "
+                          f"Test accuracy: {accuracy}")
                     running_loss = 0
                     model.train()
 
         print('Training Completed!!!')
+
+        def save_model(self, model, train_loader, optimizer, file_path='./'):
+
+            checkpoint = {'class_to_idx': train_data.class_to_idx,
+                          'model':model,
+                          'classifier': model.classifier,
+                          'optimizer': optimizer.state_dict(),
+                          'state_dict': model.state_dict()}
+
+            torch.save(checkpoint, f'{file_path}/checkpoint.pth')
+
+            print('Model successfully saved')
 
