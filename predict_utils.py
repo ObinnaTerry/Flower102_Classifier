@@ -61,4 +61,36 @@ class PredictUtils:
 	    
 	    return ax
 
-	
+	def predict(image_path, model, topk=5, map_to_names=True):
+    
+    ''' Predict the class (or classes) of an image using a trained deep learning model.
+    '''
+        
+	    image = image_path.unsqueeze(0)
+	    
+	    with open('cat_to_name.json', 'r') as f:
+	        cat_to_name = json.load(f)
+	    
+	    with torch.no_grad():
+	        output = model.forward(image)
+	        
+	        ps = torch.exp(output)
+	        top_prob, top_class = ps.topk(topk, dim=1)
+	        
+	    class_to_idx_rev = {loaded_model.class_to_idx[k]: k for k in model.class_to_idx}
+	    
+	    classes = []
+	    
+	    for index in top_class.numpy()[0]:
+	        classes.append(class_to_idx_rev[index])
+	    
+	    probs, classes = top_prob.numpy()[0], classes
+	    
+	    if map_to_names:
+	        names = []
+	        for cl in classes:
+	            names.append(cat_to_name[str(cl)])
+	        
+	        return dict(zip(names, probs))
+	    else:
+	        return dict(zip(classes,probs))
