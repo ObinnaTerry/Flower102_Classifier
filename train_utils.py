@@ -27,8 +27,6 @@ class TrainUtils(Exception):
         valid_dir = base_folder + '/valid'
         test_dir = base_folder + '/test'
 
-        # TODO: Define your transforms for the training, validation, and testing sets
-
         train_transform = transforms.Compose([transforms.RandomRotation(30),
                                               transforms.RandomHorizontalFlip(),
                                               transforms.RandomResizedCrop(244),
