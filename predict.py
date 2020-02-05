@@ -7,6 +7,7 @@ my_parser.add_argument('--image_path', action='store', dest='image_path', type=s
 my_parser.add_argument('--model_path', action='store', dest='model_path', type=str, required=True)
 my_parser.add_argument('--top_k', action='store', dest='top_k', type=int, default=3)
 my_parser.add_argument('--map_to_name', action='store', dest='map_to_name', type=bool, default=True)
+my_parser.add_argument('--mode', action='store', dest='mode', type=str, default='cpu')
 
 args = my_parser.parse_args()
 
@@ -19,5 +20,8 @@ if __name__ == '__main__':
 
 	loaded_moded = util.load_checkpoint(args.model_path)
 
-	util.predict(process_image)
-	
+	result = util.predict(processed_image, loaded_moded, args.top_k, args.map_to_name, args.mode)
+
+	print('Predictions are as follows:\n---------------------')
+	for key, value in result.items():
+		print(f'{key}: {round(value*100, 3)}%')
