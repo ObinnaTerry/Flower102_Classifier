@@ -1,7 +1,6 @@
 import argparse
 from train_utils import TrainUtils
 
-
 my_parser = argparse.ArgumentParser(description='Script used for training a model.')
 
 my_parser.add_argument('--model_name', action='store', dest='model_name', type=str, default='vgg16')
@@ -12,19 +11,20 @@ my_parser.add_argument('--learning_rate', action='store', dest='learning_rate', 
 my_parser.add_argument('--epochs', action='store', dest='epochs', type=int, default=3)
 my_parser.add_argument('--model_save_path', action='store', dest='model_save_path', default='./')
 my_parser.add_argument('--model_save_name', action='store', dest='model_save_name', default='checkpoint')
+my_parser.add_argument('--cl_output', action='store', dest='cl_output', type=int, required=True)
 
 args = my_parser.parse_args()
 
-
 if __name__ == '__main__':
+    util = TrainUtils(args.mode)
 
-	util = TrainUtils(args.mode)
+    train_loader, valid_loader, test_loader, class_to_idx = util.data_loader()  # load data
 
-	train_loader, valid_loader, test_loader, class_to_idx = util.data_loader()  #load data
+    model, optimizer, criterion = util.create_model(args.cl_output,
+                                                    args.model_name, args.hidden_layer,
+                                                    args.learning_rate)  # create model
 
-	model, optimizer, criterion = util.create_model(args.model_name, args.hidden_layer, args.learning_rate)  # create model
+    util.train_validate(optimizer, model, criterion, train_loader, valid_loader,
+                        args.epochs)  # train and validate model
 
-	util.train_validate(optimizer, model, criterion, train_loader, valid_loader, args.epochs)  # train and validate model
-
-	util.save_model(model, class_to_idx, optimizer, args.model_save_path, args.model_save_name)  #save model
-
+    util.save_model(model, class_to_idx, optimizer, args.model_save_path, args.model_save_name)  # save model
