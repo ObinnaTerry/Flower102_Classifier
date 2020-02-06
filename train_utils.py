@@ -1,4 +1,3 @@
-import json
 import os
 
 import torch
@@ -8,9 +7,12 @@ from torchvision import transforms, models, datasets
 
 
 class TrainUtils(Exception):
-    """Contains methods for training"""
 
     def __init__(self, mode='gpu'):
+        """Provides methods for training models on any set of labeled images.
+
+        :param mode: can be gpu or cpu
+        """
 
         Exception.__init__(self)
 
@@ -19,9 +21,15 @@ class TrainUtils(Exception):
 
     @staticmethod
     def data_loader(base_folder='./flowers/'):
+        """Load and transform train, validation and test data-sets.
+
+        This method will raise a Exception if the base_folder argument provided does not exist.
+        :param base_folder: folder containing train, validation and test data
+        :return: dataloader for train, validation and test as well as class to index mapper
+        """
 
         if not os.path.exists(base_folder):
-            raise Exception('Target folder can not be found')
+            raise Exception('Target folder can not be found')  # raise exception is base_folder is not found
 
         train_dir = base_folder + '/train'
         valid_dir = base_folder + '/valid'
@@ -60,14 +68,16 @@ class TrainUtils(Exception):
 
         return train_loader, valid_loader, test_loader, train_data.class_to_idx
 
-    @staticmethod
-    def names():
-        with open('cat_to_name.json', 'r') as file:
-            cat_to_name = json.load(file)
+    def create_model(self, cl_output, model_name='vgg16', hidden_layer=256, learning_rate=0.001):
+        """Create model from input arguments.
 
-        return cat_to_name
-
-    def create_model(self, model_name='vgg16', hidden_layer=256, learning_rate=0.001):
+        Supports only three pre-trained models: 'vgg16','densenet121' and'alexnet'.
+        :param cl_output: number of output predictions from the model. (type: int)
+        :param model_name: name of pre-trained model.
+        :param hidden_layer: number of hidden layer. (type: int)
+        :param learning_rate: learning rate for model. (type: float)
+        :return: model, optimizer, criterion
+        """
 
         models_list = ['vgg16', 'densenet121', 'alexnet']
 
@@ -81,7 +91,6 @@ class TrainUtils(Exception):
             print(f'Please choose one of these models: {models_list}')
 
         classifier_input = model.classifier[0].in_features
-        classifier_output = len(self.names)
 
         for param in model.parameters():
             param.requires_grad = False
@@ -89,7 +98,7 @@ class TrainUtils(Exception):
         model.classifier = nn.Sequential(nn.Linear(classifier_input, hidden_layer),
                                          nn.ReLU(),
                                          nn.Dropout(0.2),
-                                         nn.Linear(hidden_layer, classifier_output),
+                                         nn.Linear(hidden_layer, cl_output),
                                          nn.LogSoftmax(dim=1))
 
         criterion = nn.NLLLoss()
@@ -101,10 +110,18 @@ class TrainUtils(Exception):
         return model, optimizer, criterion
 
     def validation(self, model, criterion, test_loader):
+        """Use for model validation.
 
+        This method can be used for both validation and testing. When used for validation, the test_loader argument
+        should point to a validation data. For testing, it should point to a test data.
+        :param model: trained model to be used for validation or testing
+        :param criterion: criterion to be used
+        :param test_loader: folder containing test or validation data
+        :return: accuracy and loss.
+        """
         valid_loss = 0
         accuracy = 0
-                    
+
         with torch.no_grad():
             for inputs, labels in test_loader:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -119,10 +136,23 @@ class TrainUtils(Exception):
                 equals = top_class == labels.view(*top_class.shape)
                 accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
 
-        return round(accuracy/len(test_loader), 3), round(valid_loss/len(test_loader), 3)
+        return round(accuracy / len(test_loader), 3), round(valid_loss / len(test_loader), 3)
 
     def train_validate(self, optimizer, model, criterion, train_loader, valid_loader, epochs=3):
+        """Train model and performs validation.
 
+        This method trains a model and performs validation after every 20 iteration of the train data set. Validation is
+        performed using the validation method of this class. train loss, test loss and validation accuracy are printed
+        after every 20 iteration of the train data.
+        validation is performed is eval mode of the model.
+
+        :param optimizer:
+        :param model: model to be trained.
+        :param criterion: criterion to be used.
+        :param train_loader: folder containing training data set.
+        :param valid_loader: folder containing validation data set
+        :param epochs: number of training epochs. (default: 3; type: int)
+        """
         steps = 0
         running_loss = 0
         print_every = 20
@@ -142,35 +172,42 @@ class TrainUtils(Exception):
                 running_loss += loss.item()
 
                 if steps % print_every == 0:
-
                     model.eval()
-                    
-                    accuracy, test_loss = self.validation(model, criterion, valid_loader)
+
+                    accuracy, validation_loss = self.validation(model, criterion, valid_loader)  # performs validation
 
                     print(f"Epoch {epoch + 1}/{epochs}.. "
                           f"Train loss: {running_loss / print_every:.3f}.. "
-                          f"Test loss: {test_loss}.. "
-                          f"Test accuracy: {accuracy}")
+                          f"Test loss: {validation_loss}.. "
+                          f"Validation accuracy: {accuracy}")
                     running_loss = 0
                     model.train()
 
         print('Training Completed!!!')
 
-        @staticmethod
-        def save_model(model, class_to_idx, optimizer, file_path='./', model_name='checkpoint'):
+    @staticmethod
+    def save_model(model, class_to_idx, optimizer, file_path='./', model_name='checkpoint'):
+        """Save a trained model.
 
-            model.class_to_idx = class_to_idx
+        This method can invoked to save a trained model.
+        :param model: Trained model to saved
+        :param class_to_idx: class to index mapper of the model
+        :param optimizer: optimizer used in training the model
+        :param file_path: file path where moel should be saved. if no file path is provided, model will be saved in same
+        folder as the python script that initiated it.
+        :param model_name: named to be used in saving the model. (default:'checkpoint')
+        """
+        model.class_to_idx = class_to_idx
 
-            print("Our model: \n\n", model, '\n')
-            print("The state dict keys: \n\n", model.state_dict().keys())
+        print("Our model: \n\n", model, '\n')
+        print("The state dict keys: \n\n", model.state_dict().keys())
 
-            checkpoint = {'class_to_idx': model.class_to_idx,
-                          'model':model,
-                          'classifier': model.classifier,
-                          'optimizer': optimizer.state_dict(),
-                          'state_dict': model.state_dict()}
+        checkpoint = {'class_to_idx': model.class_to_idx,
+                      'model': model,
+                      'classifier': model.classifier,
+                      'optimizer': optimizer.state_dict(),
+                      'state_dict': model.state_dict()}
 
-            torch.save(checkpoint, f'{file_path}//{model_name}.pth')
+        torch.save(checkpoint, f'{file_path}//{model_name}.pth')
 
-            print(f'Model successfully saved at {file_path}')
-
+        print(f'Model successfully saved at {file_path}')
