@@ -5,7 +5,7 @@ This project uses pytorch pretrained deep learning models for the classification
 **train.py**
 - trains a model based on input parameters and saves the trained model to a destination folder. 
 	**input variables:**
-	- model_name: name of model to be used. - only 3 pretrained models are suppported, they include:  <bi>'vgg16'</bi>, <bi>'densenet121'</bi>, and  <i>'alexnet'</i>. 
+	- model_name: name of model to be used. - only 3 pretrained models are suppported, they include:  ***'vgg16'***, ***'densenet121'***, and  ***'alexnet'***. 
 	- base_folder: path to folder containing dataset
 	- mode: training mode, can be cpu or gpu
 	- hidden_layer: number of hidden layer
@@ -14,7 +14,7 @@ This project uses pytorch pretrained deep learning models for the classification
 	- model_save_path: location to save trained model
 	- model_save_name: name to use in saving trained model
 - all input variables for train.py have predefined default values. To run train.py using default parameters, simply type <code>python train.py</code> on your command line
-- to change a default input variable, e.g., to change the number of epochs to 5, type <code>python train.py --epochs 5</code>. type <code>python train.py -h</code> to see all input variables
+- to change a default input variable, e.g., to change the number of epochs to 5, type <code>python train.py --epochs 5</code>. type <code>python train.py -h</code> to get help about input variables
 - train.py also provides abilty to train on a gpu, use <code>--mode gpu</code> to train on gpu
 
 **predict.py**
@@ -23,7 +23,7 @@ This project uses pytorch pretrained deep learning models for the classification
 	- image_path: path to image be used predicted
 	- model_path: path to model to used for prediction
 	- top_k: number of top predictions to display
-	- map_to_name: maps classes to image names. set to <code>False</code> if you prefer <i>classes</i> as output
+	- json_file: file path to a json file that maps classes to image names. if such a file is provided, the output prediction will be the top_k names anf their corresponding percentages, else the output will be the top_k classes with their corresponding probabilities
 	- mode: prediction mode, can be cpu or gpu. default is cpu
 - two input variables <i>model_path</i> and <i>image_path</i> must be provides during execution. 
 
