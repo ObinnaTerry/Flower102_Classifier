@@ -5,7 +5,7 @@ This project uses pytorch pretrained deep learning models for the classification
 **train.py**
 - trains a model based on input parameters and saves the trained model to a destination folder. 
 	**input variables:**
-	- model_name: name of model to be used. - only 3 pretrained models are suppported, they include:  <bdi>'vgg16'</bdi>, <bdi>'densenet121'</bdi>, and  <bdi>'alexnet'</bdi>. 
+	- model_name: name of model to be used. - only 3 pretrained models are suppported, they include:  <bi>'vgg16'</bi>, <bi>'densenet121'</bi>, and  <i>'alexnet'</i>. 
 	- base_folder: path to folder containing dataset
 	- mode: training mode, can be cpu or gpu
 	- hidden_layer: number of hidden layer
